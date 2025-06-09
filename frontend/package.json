@@ -10,6 +10,7 @@
     "@types/react": "^18.2.61",
     "@types/react-dom": "^18.2.19",
     "axios": "^1.6.7",
+    "classnames": "^2.5.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-image-crop": "^11.0.10",
