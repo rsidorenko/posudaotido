@@ -1,50 +1,69 @@
-# Responsive Styles Structure
+ # Структура стилей
 
-This directory contains the styles for the application, organized in a responsive way with separate desktop and mobile styles.
+Эта директория содержит стили приложения, организованные с использованием CSS Modules для лучшей изоляции компонентов и поддержки кода.
 
-## Directory Structure
+## Структура директории
 
 ```
 styles/
-├── desktop/              # Desktop-specific styles
-│   ├── components/      # Desktop component styles
-│   └── pages/          # Desktop page styles
-├── mobile/              # Mobile-specific styles
-│   ├── components/     # Mobile component styles
-│   └── pages/         # Mobile page styles
-├── _variables.scss     # Shared variables
-└── main.scss          # Main styles file with imports
+├── _variables.scss     # Общие переменные и миксины
+├── main.scss          # Основной файл стилей с базовыми стилями
+└── *.module.scss      # Стили для конкретных компонентов с использованием CSS Modules
 ```
 
-## How It Works
+## Как это работает
 
-1. The `main.scss` file imports both desktop and mobile styles
-2. Desktop styles are loaded by default
-3. Mobile styles are loaded through a media query for screens smaller than 768px
-4. Each component and page has its own style file in both desktop and mobile directories
+1. Файл `main.scss` содержит базовые стили и импортирует переменные
+2. Каждый компонент имеет свой файл `.module.scss` для специфичных стилей
+3. Адаптивный дизайн реализован через медиа-запросы внутри каждого модульного файла
+4. Общие переменные и миксины определены в `_variables.scss`
 
-## Adding New Styles
+## Добавление новых стилей
 
-1. Create your style file in both `desktop/components/` and `mobile/components/` for components
-2. Create your style file in both `desktop/pages/` and `mobile/pages/` for pages
-3. Import the new files in the respective `desktop.scss` and `mobile.scss` files
+1. Для новых компонентов создайте новый файл `.module.scss` в этой директории
+2. Импортируйте файл в вашем компоненте:
+   ```typescript
+   import styles from '../../styles/YourComponent.module.scss';
+   ```
+3. Используйте стили в компоненте через проп `className`:
+   ```typescript
+   <div className={styles.yourClass}>
+   ```
 
-## Best Practices
+## Лучшие практики
 
-1. Keep shared variables in `_variables.scss`
-2. Use relative units (rem, em) for better scaling
-3. Test both desktop and mobile versions
-4. Keep mobile styles optimized for touch interactions
-5. Use flexbox and grid for responsive layouts
+1. Храните общие переменные в `_variables.scss`
+2. Используйте относительные единицы измерения (rem, em) для лучшего масштабирования
+3. Реализуйте адаптивный дизайн с помощью медиа-запросов внутри стилей компонентов
+4. Используйте CSS Modules для избежания конфликтов стилей
+5. Следуйте BEM-подобному соглашению по именованию классов
+6. Используйте flexbox и grid для макетов
+7. Придерживайтесь подхода "mobile-first" при написании стилей
 
-## Media Queries
+## Медиа-запросы
 
-The breakpoint for mobile devices is set at 768px. This can be adjusted in `main.scss` if needed.
+Стандартные точки перелома определены в `_variables.scss`:
+- Мобильные устройства: до 768px
+- Планшеты: от 769px до 1024px
+- Десктопы: от 1025px и выше
 
-## Usage Example
+## Пример использования
 
 ```scss
-// In your component
-import styles from './styles/desktop/components/YourComponent.scss';
-// The mobile styles will be automatically applied when the screen width is below 768px
-``` 
+// В файле .module.scss вашего компонента
+@import './variables';
+
+.yourComponent {
+  // Базовые стили
+  padding: $spacing-unit;
+  
+  // Адаптивные стили
+  @media (max-width: $breakpoint-tablet) {
+    padding: $spacing-unit * 0.5;
+  }
+  
+  @media (max-width: $breakpoint-mobile) {
+    padding: $spacing-unit * 0.25;
+  }
+}
+```

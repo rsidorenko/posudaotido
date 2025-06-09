@@ -147,23 +147,31 @@ const ProductDetail: React.FC = () => {
           <div className={styles.actionRow}>
             {cartItem && cartItem.quantity > 0 ? (
               <div className={CatalogModule.qtyControl} style={{ width: '180px', height: '48px' }}>
-                <button className={CatalogModule.qtyBtn} onClick={e => {
-                  e.stopPropagation();
-                  if (cartItem.quantity > 1) dispatch(updateQuantity({ id: String(productToShow._id), quantity: cartItem.quantity - 1 }));
-                  else dispatch(removeFromCart(String(productToShow._id)));
-                }}>
+                <button 
+                  className={CatalogModule.qtyBtn} 
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (cartItem.quantity > 1) dispatch(updateQuantity({ id: String(productToShow._id), quantity: cartItem.quantity - 1 }));
+                    else dispatch(removeFromCart(String(productToShow._id)));
+                  }}
+                  aria-label="Уменьшить количество"
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                   </svg>
                 </button>
                 <span className={CatalogModule.qtyValue}>{cartItem.quantity}</span>
-                <button className={CatalogModule.qtyBtn} onClick={e => {
-                  e.stopPropagation();
-                  if (cartItem.quantity < productToShow.stock) {
-                    dispatch(updateQuantity({ id: String(productToShow._id), quantity: cartItem.quantity + 1 }));
-                  }
-                }}
-                disabled={cartItem.quantity >= productToShow.stock}>
+                <button 
+                  className={CatalogModule.qtyBtn} 
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (cartItem.quantity < productToShow.stock) {
+                      dispatch(updateQuantity({ id: String(productToShow._id), quantity: cartItem.quantity + 1 }));
+                    }
+                  }}
+                  disabled={cartItem.quantity >= productToShow.stock}
+                  aria-label="Увеличить количество"
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -175,6 +183,7 @@ const ProductDetail: React.FC = () => {
                 className={`${CatalogModule.addBtn} ${styles.actionBtn} ${productToShow.stock === 0 ? CatalogModule.outOfStock : ''}`} 
                 onClick={() => dispatch(addToCart({ product: { ...productToShow, _id: String(productToShow._id), quantity: 1, image: productToShow.images?.[0] || '' }, quantity: 1 }))}
                 disabled={productToShow.stock === 0}
+                aria-label={productToShow.stock === 0 ? 'Товар отсутствует в наличии' : 'Добавить в корзину'}
               >
                 {productToShow.stock === 0 ? 'Нет в наличии' : 'В корзину'}
               </button>
@@ -194,7 +203,7 @@ const ProductDetail: React.FC = () => {
 };
 
 // Карточка товара из каталога - Defined outside the main component
-const CatalogProductCard: React.FC<{product: Product, onCardClick?: () => void}> = ({ product, onCardClick }) => {
+export const CatalogProductCard: React.FC<{product: Product, onCardClick?: () => void}> = ({ product, onCardClick }) => {
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector((state: RootState) => state.cart.items);
   const cartItem = cartItems.find((item: CartItem) => item._id === String(product._id));
@@ -222,13 +231,21 @@ const CatalogProductCard: React.FC<{product: Product, onCardClick?: () => void}>
         <div className={CatalogModule.cardFooter}>
           {cartItem ? (
             <div className={CatalogModule.qtyControl} onClick={e => e.stopPropagation()}>
-              <button className={CatalogModule.qtyBtn} onClick={handleDecrement}>
+              <button 
+                className={CatalogModule.qtyBtn} 
+                onClick={handleDecrement}
+                aria-label="Уменьшить количество"
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
               </button>
               <span className={CatalogModule.qtyValue}>{cartItem.quantity}</span>
-              <button className={CatalogModule.qtyBtn} onClick={handleIncrement}>
+              <button 
+                className={CatalogModule.qtyBtn} 
+                onClick={handleIncrement}
+                aria-label="Увеличить количество"
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>

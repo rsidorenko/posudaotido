@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { login, forgotPasswordThunk, verifyResetCodeThunk } from '../../store/slices/authSlice';
-import { AppDispatch } from '../../store';
+import { AppDispatch, RootState } from '../../store';
 import styles from '../../styles/Auth.module.scss';
 import { GoogleLoginButton } from './GoogleLoginButton';
 
@@ -20,7 +20,14 @@ const Login: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const location = useLocation();
-  const loading = useSelector((state: any) => state.auth.loading);
+  const { isAuthenticated, loading } = useSelector((state: RootState) => state.auth);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = (location.state as any)?.from || '/';
+      navigate(from);
+    }
+  }, [isAuthenticated, navigate, location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,15 +35,13 @@ const Login: React.FC = () => {
 
     try {
       await dispatch(login({ email, password })).unwrap();
-      const from = (location.state as any)?.from || '/';
-      navigate(from);
     } catch (err: any) {
       setError(typeof err === 'string' ? err : 'Неверный email или пароль');
     }
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/auth/google`;
+    window.location.href = `${process.env.REACT_APP_API_URL}/auth/google`;
   };
 
   const handleForgotPasswordSubmit = async () => {

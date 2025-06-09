@@ -318,14 +318,9 @@ const AdminPanel: React.FC = () => {
   };
 
   // Кнопка смены статуса заказа
-  const handleStatusChange = async (order: any) => {
-    let nextStatus = '';
-    if (order.status === 'unconfirmed') nextStatus = 'assembling';
-    else if (order.status === 'assembling') nextStatus = 'ready';
-    else if (order.status === 'ready') nextStatus = 'issued';
-    else return;
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatusKey) => {
     try {
-      await api.patch(`/orders/${order._id}/status`, { status: nextStatus });
+      await api.patch(`/orders/${orderId}/status`, { status: newStatus });
       fetchAllOrders();
     } catch {}
   };
@@ -968,27 +963,29 @@ const AdminPanel: React.FC = () => {
             ))}
           </div>
           {ordersLoading ? (
-            <div>Загрузка...</div>
+            <div>Загрузка заказов...</div>
           ) : ordersError ? (
-            <div style={{color:'#c00',marginBottom:12}}>{ordersError}</div>
+            <div className={ordersStyles.error}>{ordersError}</div>
           ) : (
             <>
               <div className={ordersStyles.ordersContainer}>
-                {(!groupedOrdersToShow[activeOrderTab] || groupedOrdersToShow[activeOrderTab].length === 0) ? (
-                  <div className={ordersStyles.empty}>Нет заказов</div>
-                ) : (
-                  <>
-                    {getPaginatedOrders(groupedOrdersToShow[activeOrderTab], activeOrderTab).map((order: any) => (
+                {!ordersLoading && !ordersError && Array.isArray(groupedOrdersToShow[activeOrderTab]) && groupedOrdersToShow[activeOrderTab].length === 0 && (
+                  <div className={ordersStyles.empty}>Нет заказов в этом статусе.</div>
+                )}
+
+                {/* Список заказов */}
+                {!ordersLoading && !ordersError && Array.isArray(groupedOrdersToShow[activeOrderTab]) && (
+                  getPaginatedOrders(groupedOrdersToShow[activeOrderTab], activeOrderTab).map((order) => (
                     <div key={order._id} className={ordersStyles.orderCard}>
                       <div className={ordersStyles.orderHeader}>
-                        <div>
+                        <div className={ordersStyles.orderInfo}>
                           <div className={ordersStyles.orderNumber}>Заказ №{order._id}</div>
-                            <div className={ordersStyles.orderDate}>от {new Date(order.createdAt || Date.now()).toLocaleDateString()}</div>
-                            <div className={ordersStyles.shippingAddress}>
-                              Получатель: {order.recipient
-                                ? `${order.recipient.lastName} ${order.recipient.firstName} ${order.recipient.middleName}`
-                                : (order.user?.name || 'Не указано')}
-                            </div>
+                          <div className={ordersStyles.orderDate}>от {new Date(order.createdAt).toLocaleDateString()}</div>
+                          <div className={ordersStyles.shippingAddress}>
+                            Получатель: {order.recipient
+                              ? `${order.recipient.lastName} ${order.recipient.firstName} ${order.recipient.middleName}`
+                              : (order.user?.name || 'Не указано')}
+                          </div>
                         </div>
                         <span className={ordersStyles.status}>
                           {order.status === 'unconfirmed' && 'Не подтвержден'}
@@ -996,80 +993,170 @@ const AdminPanel: React.FC = () => {
                           {order.status === 'ready' && 'Готов к выдаче'}
                           {order.status === 'issued' && 'Выдан'}
                           {order.status === 'cancelled' && 'Отменен'}
-                            {!order.status && 'Статус неизвестен'}
+                          {!order.status && 'Статус неизвестен'}
                         </span>
                       </div>
                       <div className={ordersStyles.orderItems}>
-                          {Array.isArray(order.items) ? order.items.map((item: any, idx: number) => (
-                            <div key={item._id || idx} className={ordersStyles.orderItem}>
-                              {(!item.product || !item.product.images || !item.product.images[0]) ? (
-                                <div className={ordersStyles.notAvailable} style={{color:'#e53935',fontSize:'0.95em',marginTop:4}}>Товар отсутствует в продаже</div>
-                              ) : (
-                                <img 
-                                  src={item.image || item.product.images[0]} 
-                                  alt={item.name || (item.product?.name || 'Товар')} 
-                                  className={ordersStyles.itemImage} 
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                  }}
-                                />
-                              )}
-                              <div className={ordersStyles.itemName} title={item.name || (item.product?.name || 'Товар')}>
-                                {item.name || (item.product?.name || 'Товар')}
-                              </div>
-                              <div className={ordersStyles.itemQty}>x{item.quantity || 1}</div>
-                              <div className={ordersStyles.itemTotal}>
-                                {((item.price || 0) * (item.quantity || 1)).toFixed(2)} ₽
-                              </div>
+                        {Array.isArray(order.items) ? order.items.map((item: any, idx: number) => (
+                          <div key={item._id || idx} className={ordersStyles.orderItem}>
+                            <img
+                              src={item.product?.images?.[0] || '/no-image.webp'}
+                              alt={item.product?.name || 'Товар'}
+                              className={ordersStyles.itemImage}
+                              onError={(e) => {(e.target as HTMLImageElement).style.display = 'none';}}
+                            />
+                            <div className={ordersStyles.itemName}>
+                              {item.product?.name || 'Товар'}
+                            </div>
+                            <div className={ordersStyles.itemQty}>x{item.quantity}</div>
+                            <div className={ordersStyles.itemTotal}>
+                              {((item.product?.price || 0) * (item.quantity || 1)).toFixed(2)} ₽
+                            </div>
                           </div>
-                          )) : (
-                            <div className={ordersStyles.empty}>Нет товаров или данные повреждены</div>
-                          )}
-                      </div>
-                      <div className={ordersStyles.orderFooter}>
-                          <div className={ordersStyles.orderSum}>Сумма: {(order.totalAmount || 0).toFixed(2)} ₽</div>
-                          {(order.status === 'unconfirmed' || order.status === 'assembling' || order.status === 'ready') && (
-                          <button
-                            className={ordersStyles.button}
-                            style={{ minWidth: 180 }}
-                            onClick={() => handleStatusChange(order)}
-                          >
-                            {order.status === 'unconfirmed' && 'Подтвердить (сборка)'}
-                            {order.status === 'assembling' && 'Готов к выдаче'}
-                              {order.status === 'ready' && 'Выдан'}
-                          </button>
+                        )) : (
+                          <div className={ordersStyles.empty}>Нет товаров или данные повреждены</div>
                         )}
                       </div>
-                    </div>
-                    ))}
-                    {getTotalPages(groupedOrdersToShow[activeOrderTab] || []) > 1 && (
-                      <div className={ordersStyles.pagination}>
-                        <button
-                          className={ordersStyles.pageBtn}
-                          onClick={() => handlePageChange(activeOrderTab, currentPage[activeOrderTab] - 1)}
-                          disabled={currentPage[activeOrderTab] === 1}
-                        >
-                          &lt;
-                        </button>
-                        {Array.from({ length: getTotalPages(groupedOrdersToShow[activeOrderTab] || []) }, (_, i) => i + 1).map((page) => (
-                          <button
-                            key={page}
-                            className={`${ordersStyles.pageBtn} ${currentPage[activeOrderTab] === page ? ordersStyles.activePageBtn : ''}`}
-                            onClick={() => handlePageChange(activeOrderTab, page)}
-                          >
-                            {page}
-                          </button>
-                        ))}
-                        <button
-                          className={ordersStyles.pageBtn}
-                          onClick={() => handlePageChange(activeOrderTab, currentPage[activeOrderTab] + 1)}
-                          disabled={currentPage[activeOrderTab] === getTotalPages(groupedOrdersToShow[activeOrderTab] || [])}
-                        >
-                          &gt;
-                        </button>
+
+                      <div className={ordersStyles.orderFooter}>
+                        <div className={ordersStyles.orderSum}>Сумма: {(order.totalAmount || 0).toFixed(2)} ₽</div>
+
+                        <div className={ordersStyles.orderActions}>
+                          {activeOrderTab === 'unconfirmed' && (order.status === 'unconfirmed') && (
+                            <button
+                              className={ordersStyles.button}
+                              onClick={() => handleStatusChange(order._id, 'assembling')}
+                            >
+                              Перевести в Сборку
+                            </button>
+                          )}
+                          {activeOrderTab === 'assembling' && (order.status === 'assembling') && (
+                            <button
+                              className={ordersStyles.button}
+                              onClick={() => handleStatusChange(order._id, 'ready')}
+                            >
+                              Перевести в Готов к выдаче
+                            </button>
+                          )}
+                          {activeOrderTab === 'ready' && (order.status === 'ready') && (
+                            <>
+                              <button
+                                className={ordersStyles.button}
+                                onClick={() => handleStatusChange(order._id, 'issued')}
+                              >
+                                Выдан
+                              </button>
+                              <button
+                                className={ordersStyles.cancelButton}
+                                onClick={() => handleStatusChange(order._id, 'cancelled')}
+                              >
+                                Отменить
+                              </button>
+                            </>
+                          )}
+                          {activeOrderTab === 'issued' && (order.status === 'issued') && (
+                            <button
+                              className={`${ordersStyles.button} ${ordersStyles.cancelButton}`}
+                              onClick={() => handleStatusChange(order._id, 'assembling')}
+                            >
+                              Вернуть в сборку
+                            </button>
+                          )}
+                           {activeOrderTab === 'cancelled' && (order.status === 'cancelled') && (
+                            <button
+                              className={`${ordersStyles.button} ${ordersStyles.cancelButton}`}
+                              onClick={() => handleStatusChange(order._id, 'unconfirmed')}
+                            >
+                              Вернуть в неподтвержденные
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </>
+
+                      <div className={ordersStyles.orderFooterMobile}>
+                         <div className={ordersStyles.orderSum}>Сумма: {(order.totalAmount || 0).toFixed(2)} ₽</div>
+                         <div className={ordersStyles.orderActions}>
+                          {activeOrderTab === 'unconfirmed' && (order.status === 'unconfirmed') && (
+                            <button
+                              className={ordersStyles.button}
+                              onClick={() => handleStatusChange(order._id, 'assembling')}
+                            >
+                              Перевести в Сборку
+                            </button>
+                          )}
+                          {activeOrderTab === 'assembling' && (order.status === 'assembling') && (
+                            <button
+                              className={ordersStyles.button}
+                              onClick={() => handleStatusChange(order._id, 'ready')}
+                            >
+                              Перевести в Готов к выдаче
+                            </button>
+                          )}
+                          {activeOrderTab === 'ready' && (order.status === 'ready') && (
+                            <>
+                              <button
+                                className={ordersStyles.button}
+                                onClick={() => handleStatusChange(order._id, 'issued')}
+                              >
+                                Выдан
+                              </button>
+                              <button
+                                className={ordersStyles.cancelButton}
+                                onClick={() => handleStatusChange(order._id, 'cancelled')}
+                              >
+                                Отменить
+                              </button>
+                            </>
+                          )}
+                          {activeOrderTab === 'issued' && (order.status === 'issued') && (
+                            <button
+                              className={`${ordersStyles.button} ${ordersStyles.cancelButton}`}
+                              onClick={() => handleStatusChange(order._id, 'assembling')}
+                            >
+                              Вернуть в сборку
+                            </button>
+                          )}
+                           {activeOrderTab === 'cancelled' && (order.status === 'cancelled') && (
+                            <button
+                              className={`${ordersStyles.button} ${ordersStyles.cancelButton}`}
+                              onClick={() => handleStatusChange(order._id, 'unconfirmed')}
+                            >
+                              Вернуть в неподтвержденные
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+
+                {/* Код пагинации */}
+                {!ordersLoading && !ordersError && Array.isArray(groupedOrdersToShow[activeOrderTab]) && getTotalPages(groupedOrdersToShow[activeOrderTab]) > 1 && (
+                  <div className={ordersStyles.pagination}>
+                    <button
+                      className={ordersStyles.pageBtn}
+                      onClick={() => handlePageChange(activeOrderTab, currentPage[activeOrderTab] - 1)}
+                      disabled={currentPage[activeOrderTab] === 1}
+                    >
+                      &lt;
+                    </button>
+                    {Array.from({ length: getTotalPages(groupedOrdersToShow[activeOrderTab]) }, (_, i) => i + 1).map(page => (
+                      <button
+                        key={page}
+                        className={`${ordersStyles.pageBtn} ${currentPage[activeOrderTab] === page ? ordersStyles.activePageBtn : ''}`}
+                        onClick={() => handlePageChange(activeOrderTab, page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button
+                      className={ordersStyles.pageBtn}
+                      onClick={() => handlePageChange(activeOrderTab, currentPage[activeOrderTab] + 1)}
+                      disabled={currentPage[activeOrderTab] === getTotalPages(groupedOrdersToShow[activeOrderTab])}
+                    >
+                      &gt;
+                    </button>
+                  </div>
                 )}
               </div>
             </>

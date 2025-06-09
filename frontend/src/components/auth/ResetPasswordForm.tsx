@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-// Предполагаем, что стили будут в ResetPasswordForm.module.scss
-import styles from './ResetPasswordForm.module.scss';
+import styles from '../../styles/Auth.module.scss';
 
 const ResetPasswordForm: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');

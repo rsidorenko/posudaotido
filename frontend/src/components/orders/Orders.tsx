@@ -132,7 +132,7 @@ const Orders: React.FC = () => {
           <div className={styles.orderFooter}>
             <div className={styles.orderSum}>Сумма: {(order.totalAmount || 0).toFixed(2)} ₽</div>
             {(order.status !== 'issued' && order.status !== 'cancelled') && (
-              <button className={styles.cancelBtn} onClick={async () => {
+              <button className={styles.cancelButton} onClick={async () => {
                 await dispatch(cancelOrder(order._id));
                 dispatch(fetchOrders());
               }}>
@@ -143,7 +143,7 @@ const Orders: React.FC = () => {
           <div className={styles.orderFooterMobile}>
             <div className={styles.orderSum}><span className={styles.desktopOnly}>Итог:</span>{!(window.innerWidth > 700) && 'Сумма:'} {(order.totalAmount || 0).toFixed(2)} ₽</div>
             {(order.status !== 'issued' && order.status !== 'cancelled') && (
-              <button className={styles.cancelBtn} onClick={async () => {
+              <button className={styles.cancelButton} onClick={async () => {
                 await dispatch(cancelOrder(order._id));
                 dispatch(fetchOrders());
               }}>

@@ -39,11 +39,3 @@ a {
     color: $cyan;
   }
 }
-
-// Import desktop styles by default
-@import './desktop/desktop';
-
-// Import mobile styles with media query
-@media screen and (max-width: 768px) {
-  @import './mobile/mobile';
-} 

@@ -224,7 +224,7 @@
   &.outOfStock {
     background-color: #ccc !important;
     color: #666 !important;
-    cursor: not-allowed;
+    cursor: default;
     border: none !important;
     &:hover {
       background-color: #ccc !important;
@@ -277,7 +277,7 @@
 
   &:disabled {
     opacity: 0.5;
-    cursor: not-allowed;
+    cursor: default;
   }
 }
 
@@ -559,13 +559,13 @@
       color: $white;
       border-color: $primary-brown;
       svg {
-        fill: $white;
+        fill: $primary-brown;
         stroke: $white;
       }
     }
     &:disabled {
       opacity: 0.5;
-      cursor: not-allowed;
+      cursor: default;
     }
   }
 
@@ -620,7 +620,7 @@
     &.outOfStock {
       background-color: #ccc !important;
       color: #666 !important;
-      cursor: not-allowed;
+      cursor: default;
       border: none !important;
       box-shadow: none;
       &:hover {
@@ -845,7 +845,7 @@
        &.outOfStock {
          background-color: #ccc !important;
          color: #666 !important;
-         cursor: not-allowed;
+         cursor: default;
          border: none !important;
          &:hover {
            background-color: #ccc !important;

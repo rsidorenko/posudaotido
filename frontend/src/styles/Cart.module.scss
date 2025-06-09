@@ -173,8 +173,8 @@
       color: darken($primary-blue, 10%);
     }
     &:disabled {
-      color: $light-gray;
-      cursor: not-allowed;
+      cursor: default;
+      opacity: 1;
     }
   }
 
@@ -744,8 +744,26 @@
       }
     }
     &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+      cursor: default;
+      opacity: 1;
+      filter: none;
+      border-color: $primary-brown !important;
+      svg {
+        fill: $light-gray !important;
+        stroke: $light-gray !important;
+        display: block;
+      }
+
+      &:hover {
+        background: none !important;
+        color: $light-gray !important;
+        border-color: $primary-brown !important;
+        cursor: default !important;
+        svg {
+          fill: $light-gray !important;
+          stroke: $light-gray !important;
+        }
+      }
     }
   }
   .counter span {

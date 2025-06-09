@@ -1,42 +1,39 @@
-// In this file you can configure migrate-mongo
+// В этом файле вы можете настроить migrate-mongo
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const config = {
   mongodb: {
-    // TODO Change (or review) the url to your MongoDB:
+    // TODO Измените (или проверьте) URL для вашей MongoDB:
     url: process.env.MONGO_URI || 'mongodb://localhost:27017',
 
-    // TODO Change this to your database name:
-    databaseName: 'kitchenstore',
+    // TODO Измените это на имя вашей базы данных:
+    databaseName: 'posuda-ot-i-do',
 
     options: {
-      useNewUrlParser: true, // removes a deprecation warning when connecting
-      useUnifiedTopology: true, // removes a deprecating warning when connecting
-      //   connectTimeoutMS: 3600000, // increase connection timeout to 1 hour
-      //   socketTimeoutMS: 3600000, // increase socket timeout to 1 hour
+      // Удалены устаревшие опции useNewUrlParser и useUnifiedTopology
     }
   },
 
-  // The migrations dir, can be an relative or absolute path. Only edit this when really necessary.
+  // Директория миграций, может быть относительным или абсолютным путем. Изменяйте только при необходимости.
   migrationsDir: 'migrations',
 
-  // The mongodb collection where the applied changes are stored. Only edit this when really necessary.
+  // Коллекция MongoDB, где хранятся примененные изменения. Изменяйте только при необходимости.
   changelogCollectionName: 'changelog',
 
-  // The mongodb collection where the lock will be created.
+  // Коллекция MongoDB, где будет создана блокировка.
   lockCollectionName: 'changelog_lock',
 
-  // The value in seconds for the TTL index that will be used for the lock. Value of 0 will disable the feature.
+  // Значение в секундах для TTL индекса, который будет использоваться для блокировки. Значение 0 отключает функцию.
   lockTtl: 0,
 
-  // The file extension to create migrations and search for in migration dir 
+  // Расширение файла для создания миграций и поиска в директории миграций
   migrationFileExtension: '.js',
 
-  // Enable the algorithm to create a checksum of the file contents and use that in the comparison to determine
-  // if the file should be run.  Requires that scripts are coded to be run multiple times.
+  // Включить алгоритм создания контрольной суммы содержимого файла и использовать его при сравнении для определения,
+  // должен ли файл быть запущен. Требует, чтобы скрипты были закодированы для многократного запуска.
   useFileHash: false,
 
-  // Don't change this, unless you know what you're doing
+  // Не меняйте это, если вы не знаете, что делаете
   moduleSystem: 'commonjs',
 };
 

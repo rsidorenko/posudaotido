@@ -118,7 +118,10 @@ export const forgotPassword = async (req: Request, res: Response) => {
     const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
     const resetTokenExpiry = Date.now() + 3600000; // 1 час
 
-    user.resetPasswordToken = resetToken;
+    // Хешируем токен перед сохранением
+    const hashedToken = await bcrypt.hash(resetToken, 10);
+
+    user.resetPasswordToken = hashedToken;
     user.resetPasswordExpires = resetTokenExpiry;
     await user.save();
 
@@ -142,19 +145,25 @@ export const resetPassword = async (req: Request, res: Response) => {
   try {
     const { token, newPassword } = req.body;
 
+    // Находим пользователя по хешированному токену и времени истечения
     const user = await User.findOne({
-      resetPasswordToken: token,
+      resetPasswordToken: token, // Ищем по хешированному токену, пришедшему с фронтенда
       resetPasswordExpires: { $gt: Date.now() }
     });
 
+    // Проверяем, найден ли пользователь
     if (!user) {
       return res.status(400).json({ message: 'Неверный или просроченный токен восстановления.' });
     }
 
-    user.password = newPassword;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-    await user.save();
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Обновляем пароль и поля токена напрямую через findByIdAndUpdate, чтобы избежать повторного хеширования в хуке 'pre'
+    await User.findByIdAndUpdate(user._id, {
+      password: hashedPassword,
+      resetPasswordToken: undefined,
+      resetPasswordExpires: undefined
+    });
 
     res.status(200).json({ message: 'Пароль успешно сброшен.' });
   } catch (error) {
@@ -167,21 +176,91 @@ export const verifyResetCode = async (req: Request, res: Response) => {
   try {
     const { email, code } = req.body;
 
+    // Находим пользователя по email и времени истечения
     const user = await User.findOne({
       email,
-      resetPasswordToken: code,
       resetPasswordExpires: { $gt: Date.now() }
     });
 
-    if (!user) {
+    // Проверяем, существует ли пользователь и совпадает ли хеш кода
+    if (!user || !(await bcrypt.compare(code, user.resetPasswordToken || ''))) {
       return res.status(400).json({ message: 'Неверный код или истек срок действия.' });
     }
 
-    // Вместо простого сообщения, отправляем токен сброса пароля
+    // Вместо простого сообщения, отправляем токен сброса пароля (теперь это хеш)
     res.status(200).json({ message: 'Код подтвержден успешно.', resetToken: user.resetPasswordToken });
 
   } catch (error) {
     console.error('Verify reset code error:', error);
     res.status(500).json({ message: 'Ошибка при проверке кода.' });
+  }
+};
+
+// Get current user
+export const getCurrentUser = async (req: Request, res: Response) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'Пользователь не найден' });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка при получении информации о пользователе' });
+  }
+};
+
+// Google callback handler
+export const googleCallback = (req: Request, res: Response, next: Function) => {
+  passport.authenticate('google', { session: false }, async (err: any, user: any) => {
+    if (err) {
+      return next(err);
+    }
+    if (!user) {
+      return res.status(401).json({ message: 'Ошибка аутентификации через Google' });
+    }
+
+    try {
+      const tokens = generateTokens({ id: user._id, email: user.email, role: user.role });
+      res.cookie('refreshToken', tokens.refreshToken, REFRESH_COOKIE_OPTIONS);
+      res.json({
+        accessToken: tokens.accessToken,
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          role: user.role
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ message: 'Ошибка при создании токенов' });
+    }
+  })(req, res, next);
+};
+
+// Refresh token handler
+export const refreshToken = async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'Refresh token обязателен' });
+    }
+
+    let payload;
+    try {
+      payload = verifyRefreshToken(refreshToken);
+    } catch (e) {
+      return res.status(401).json({ message: 'Неверный refresh token' });
+    }
+
+    const user = await User.findById(payload.id);
+    if (!user) {
+      return res.status(404).json({ message: 'Пользователь не найден' });
+    }
+
+    const tokens = generateTokens({ id: user._id, email: user.email, role: user.role });
+    res.cookie('refreshToken', tokens.refreshToken, REFRESH_COOKIE_OPTIONS);
+    res.json({ accessToken: tokens.accessToken });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка обновления токена' });
   }
 }; 

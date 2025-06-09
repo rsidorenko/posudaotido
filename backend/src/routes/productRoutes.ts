@@ -6,7 +6,6 @@ import path from 'path';
 import type { NextFunction } from 'express';
 import type { FileFilterCallback } from 'multer';
 import fs from 'fs';
-import sharp from 'sharp';
 import { imageSize } from 'image-size';
 import { 
   getAllProducts, 
@@ -26,20 +25,71 @@ const router = express.Router();
  *   get:
  *     tags: [Products]
  *     summary: Получить список всех продуктов
+ *     description: Возвращает пагинированный список продуктов с возможностью фильтрации
  *     parameters:
+ *       - $ref: '#/components/parameters/pageParam'
+ *       - $ref: '#/components/parameters/limitParam'
  *       - in: query
- *         name: page
+ *         name: category
  *         schema:
- *           type: integer
- *         description: Номер страницы
+ *           type: string
+ *         description: Фильтр по категории
  *       - in: query
- *         name: limit
+ *         name: minPrice
  *         schema:
- *           type: integer
- *         description: Количество продуктов на странице
+ *           type: number
+ *         description: Минимальная цена
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *         description: Максимальная цена
  *     responses:
  *       200:
- *         description: Список продуктов
+ *         description: Успешный ответ
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 products:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Product'
+ *                 totalPages:
+ *                   type: integer
+ *                   example: 5
+ *                 currentPage:
+ *                   type: integer
+ *                   example: 1
+ *                 totalProducts:
+ *                   type: integer
+ *                   example: 50
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/', getAllProducts);
+
+/**
+ * @swagger
+ * /api/products/search:
+ *   get:
+ *     tags: [Products]
+ *     summary: Поиск продуктов
+ *     description: Поиск продуктов по названию и описанию
+ *     parameters:
+ *       - $ref: '#/components/parameters/searchQuery'
+ *       - $ref: '#/components/parameters/pageParam'
+ *       - $ref: '#/components/parameters/limitParam'
+ *     responses:
+ *       200:
+ *         description: Результаты поиска
  *         content:
  *           application/json:
  *             schema:
@@ -53,31 +103,16 @@ const router = express.Router();
  *                   type: integer
  *                 currentPage:
  *                   type: integer
- */
-router.get('/', getAllProducts);
-
-/**
- * @swagger
- * /api/products/search:
- *   get:
- *     tags: [Products]
- *     summary: Поиск продуктов
- *     parameters:
- *       - in: query
- *         name: query
- *         schema:
- *           type: string
- *         required: true
- *         description: Поисковый запрос
- *     responses:
- *       200:
- *         description: Результаты поиска
+ *                 totalProducts:
+ *                   type: integer
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       500:
+ *         description: Внутренняя ошибка сервера
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Product'
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/search', searchProducts);
 
@@ -87,6 +122,7 @@ router.get('/search', searchProducts);
  *   get:
  *     tags: [Products]
  *     summary: Получить продукты по категории
+ *     description: Возвращает список продуктов, принадлежащих указанной категории
  *     parameters:
  *       - in: path
  *         name: categoryId
@@ -94,15 +130,34 @@ router.get('/search', searchProducts);
  *         schema:
  *           type: string
  *         description: ID категории
+ *       - $ref: '#/components/parameters/pageParam'
+ *       - $ref: '#/components/parameters/limitParam'
  *     responses:
  *       200:
  *         description: Список продуктов в категории
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Product'
+ *               type: object
+ *               properties:
+ *                 products:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Product'
+ *                 totalPages:
+ *                   type: integer
+ *                 currentPage:
+ *                   type: integer
+ *                 totalProducts:
+ *                   type: integer
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/category/:categoryId', getProductsByCategory);
 
@@ -111,23 +166,29 @@ router.get('/category/:categoryId', getProductsByCategory);
  * /api/products/categories:
  *   get:
  *     tags: [Products]
- *     summary: Получить список всех уникальных категорий товаров
+ *     summary: Получить список всех категорий
+ *     description: Возвращает список всех уникальных категорий товаров
  *     responses:
  *       200:
- *         description: Список уникальных категорий
+ *         description: Список категорий
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
  *                 type: string
+ *                 example: "Кухонная утварь"
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/categories', async (req, res) => {
   try {
     const categories = await Product.distinct('category');
-
     const categoryNames = categories.filter(cat => cat && cat.trim() !== '').sort();
-
     res.json(categoryNames);
   } catch (error: any) {
     console.error('Error fetching categories:', error);
@@ -141,12 +202,14 @@ router.get('/categories', async (req, res) => {
  *   get:
  *     tags: [Products]
  *     summary: Получить продукт по ID
+ *     description: Возвращает детальную информацию о продукте
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         description: ID продукта
  *     responses:
  *       200:
@@ -156,11 +219,16 @@ router.get('/categories', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Product'
  *       404:
- *         description: Продукт не найден
+ *         $ref: '#/components/responses/NotFoundError'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/:id', getProductById);
 
-// Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
@@ -181,17 +249,15 @@ const upload = multer({
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Только изображения!'));
   }
-}) as any; // Временное решение для типов multer
-
-// Удаляю все старые роуты создания товара и оставляю только один простой
-router.post('/', auth, adminAuth, upload.single('image'), createProduct);
+}) as any;
 
 /**
  * @swagger
  * /api/products:
  *   post:
  *     tags: [Products]
- *     summary: Создать новый продукт (только для админа)
+ *     summary: Создать новый продукт
+ *     description: Создает новый продукт (только для администраторов)
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -203,38 +269,49 @@ router.post('/', auth, adminAuth, upload.single('image'), createProduct);
  *             properties:
  *               name:
  *                 type: string
+ *                 example: "Кухонный нож"
  *               description:
  *                 type: string
+ *                 example: "Острый кухонный нож из нержавеющей стали"
  *               price:
  *                 type: number
+ *                 format: float
+ *                 example: 1299.99
  *               category:
  *                 type: string
+ *                 example: "Кухонная утварь"
  *               stock:
- *                 type: number
+ *                 type: integer
+ *                 example: 100
  *               image:
  *                 type: string
  *                 format: binary
- *               imageFit:
- *                 type: string
- *                 description: CSS object-fit value (e.g., cover, contain, fill)
- *                 enum:
- *                   - fill
- *                   - contain
- *                   - cover
- *                   - none
- *                   - scale-down
+ *                 description: Изображение продукта
+ *             required:
+ *               - name
+ *               - price
+ *               - category
  *     responses:
  *       201:
- *         description: Продукт создан
+ *         description: Продукт успешно создан
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Product'
  *       400:
- *         description: Неправильный запрос
+ *         $ref: '#/components/responses/ValidationError'
  *       401:
- *         description: Не авторизован
+ *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
- *         description: Нет прав доступа
+ *         $ref: '#/components/responses/ForbiddenError'
  *       500:
- *         description: Ошибка сервера
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
+router.post('/', auth, adminAuth, upload.single('image'), createProduct);
 
 /**
  * @swagger
@@ -242,6 +319,7 @@ router.post('/', auth, adminAuth, upload.single('image'), createProduct);
  *   put:
  *     tags: [Products]
  *     summary: Обновить продукт
+ *     description: Обновляет информацию о продукте (только для администраторов)
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -250,6 +328,8 @@ router.post('/', auth, adminAuth, upload.single('image'), createProduct);
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
+ *         description: ID продукта
  *     requestBody:
  *       required: true
  *       content:
@@ -263,31 +343,37 @@ router.post('/', auth, adminAuth, upload.single('image'), createProduct);
  *                 type: string
  *               price:
  *                 type: number
+ *                 format: float
  *               category:
  *                 type: string
+ *               stock:
+ *                 type: integer
  *               image:
  *                 type: string
  *                 format: binary
- *               imageFit:
- *                 type: string
- *                 description: CSS object-fit value (e.g., cover, contain, fill)
- *                 enum:
- *                   - fill
- *                   - contain
- *                   - cover
- *                   - none
- *                   - scale-down
  *     responses:
  *       200:
- *         description: Продукт обновлен
+ *         description: Продукт успешно обновлен
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Product'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
  *       401:
- *         description: Не авторизован
+ *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
- *         description: Нет прав доступа
+ *         $ref: '#/components/responses/ForbiddenError'
  *       404:
- *         description: Продукт не найден
+ *         $ref: '#/components/responses/NotFoundError'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.put('/:id', auth, adminAuth as any, upload.single('image'), updateProduct);
+router.put('/:id', auth, adminAuth, upload.single('image'), updateProduct);
 
 /**
  * @swagger
@@ -295,6 +381,7 @@ router.put('/:id', auth, adminAuth as any, upload.single('image'), updateProduct
  *   delete:
  *     tags: [Products]
  *     summary: Удалить продукт
+ *     description: Удаляет продукт (только для администраторов)
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -303,22 +390,32 @@ router.put('/:id', auth, adminAuth as any, upload.single('image'), updateProduct
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
+ *         description: ID продукта
  *     responses:
  *       200:
- *         description: Продукт удален
+ *         description: Продукт успешно удален
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Продукт успешно удален"
  *       401:
- *         description: Не авторизован
+ *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
- *         description: Нет прав доступа
+ *         $ref: '#/components/responses/ForbiddenError'
  *       404:
- *         description: Продукт не найден
+ *         $ref: '#/components/responses/NotFoundError'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.delete('/:id', auth, adminAuth as any, deleteProduct);
-
-// Глобальный обработчик ошибок для Multer/Sharp
-router.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error('!!! MULTER/SHARP ERROR:', err);
-  res.status(500).json({ message: 'Ошибка загрузки файла', error: String(err) });
-});
+router.delete('/:id', auth, adminAuth, deleteProduct);
 
 export default router; 

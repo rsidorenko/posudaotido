@@ -5,8 +5,8 @@ services:
     restart: always
     container_name: kitchenstore-mongo
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     ports:
       - '27017:27017'
     volumes:
@@ -17,13 +17,13 @@ services:
     container_name: kitchenstore-backend
     restart: always
     environment:
-      - MONGO_URI=mongodb://root:example@mongo:27017/kitchenware?authSource=admin
+      - MONGO_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/kitchenware?authSource=admin
       - NODE_ENV=production
       - PORT=5000
-      - JWT_SECRET=supersecret
-      - SESSION_SECRET=supersecret_session
-      - FRONTEND_URL=http://localhost:3000
-      - API_URL=http://localhost:5000
+      - JWT_SECRET=${JWT_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - API_URL=${API_URL}
     ports:
       - '5000:5000'
     depends_on:

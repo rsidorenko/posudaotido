@@ -44,38 +44,66 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - items
+ *               - products
  *               - shippingAddress
  *             properties:
- *               items:
+ *               products:
  *                 type: array
  *                 items:
  *                   type: object
+ *                   required:
+ *                     - productId
+ *                     - quantity
  *                   properties:
  *                     productId:
  *                       type: string
+ *                       format: uuid
+ *                       example: "123e4567-e89b-12d3-a456-426614174000"
  *                     quantity:
  *                       type: integer
+ *                       minimum: 1
+ *                       example: 2
  *               shippingAddress:
  *                 type: object
+ *                 required:
+ *                   - street
+ *                   - city
+ *                   - state
+ *                   - zipCode
+ *                   - country
  *                 properties:
  *                   street:
  *                     type: string
+ *                     example: "ул. Примерная, 123"
  *                   city:
  *                     type: string
+ *                     example: "Москва"
  *                   state:
  *                     type: string
+ *                     example: "Московская область"
  *                   zipCode:
  *                     type: string
+ *                     example: "123456"
  *                   country:
  *                     type: string
+ *                     example: "Россия"
  *     responses:
  *       201:
- *         description: Заказ создан
+ *         description: Заказ успешно создан
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Order'
  *       400:
- *         description: Неверные данные
+ *         $ref: '#/components/responses/ValidationError'
  *       401:
- *         description: Не авторизован
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 /**
@@ -108,6 +136,7 @@ const router = express.Router();
  *   get:
  *     tags: [Orders]
  *     summary: Получить заказ по ID
+ *     description: Возвращает информацию о заказе по его ID
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -116,6 +145,8 @@ const router = express.Router();
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
+ *         description: ID заказа
  *     responses:
  *       200:
  *         description: Информация о заказе
@@ -124,9 +155,17 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Order'
  *       401:
- *         description: Не авторизован
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
  *       404:
- *         description: Заказ не найден
+ *         $ref: '#/components/responses/NotFoundError'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 /**
@@ -135,19 +174,38 @@ const router = express.Router();
  *   get:
  *     tags: [Orders]
  *     summary: Получить заказы текущего пользователя
+ *     description: Возвращает список заказов текущего пользователя
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/pageParam'
+ *       - $ref: '#/components/parameters/limitParam'
  *     responses:
  *       200:
  *         description: Список заказов пользователя
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Order'
+ *               type: object
+ *               properties:
+ *                 orders:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Order'
+ *                 totalPages:
+ *                   type: integer
+ *                 currentPage:
+ *                   type: integer
+ *                 totalOrders:
+ *                   type: integer
  *       401:
- *         description: Не авторизован
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 /**
@@ -155,22 +213,47 @@ const router = express.Router();
  * /api/orders:
  *   get:
  *     tags: [Orders]
- *     summary: Получить все заказы (только для админа)
+ *     summary: Получить все заказы
+ *     description: Возвращает список всех заказов (только для администраторов)
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/pageParam'
+ *       - $ref: '#/components/parameters/limitParam'
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, processing, shipped, delivered, cancelled]
+ *         description: Фильтр по статусу заказа
  *     responses:
  *       200:
  *         description: Список всех заказов
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Order'
+ *               type: object
+ *               properties:
+ *                 orders:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Order'
+ *                 totalPages:
+ *                   type: integer
+ *                 currentPage:
+ *                   type: integer
+ *                 totalOrders:
+ *                   type: integer
  *       401:
- *         description: Не авторизован
+ *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
- *         description: Нет прав доступа
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 /**
@@ -178,7 +261,8 @@ const router = express.Router();
  * /api/orders/{id}/status:
  *   put:
  *     tags: [Orders]
- *     summary: Обновить статус заказа (только для админа)
+ *     summary: Обновить статус заказа
+ *     description: Обновляет статус заказа (только для администраторов)
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -187,6 +271,8 @@ const router = express.Router();
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
+ *         description: ID заказа
  *     requestBody:
  *       required: true
  *       content:
@@ -199,15 +285,28 @@ const router = express.Router();
  *               status:
  *                 type: string
  *                 enum: [pending, processing, shipped, delivered, cancelled]
+ *                 example: "processing"
  *     responses:
  *       200:
- *         description: Статус заказа обновлен
+ *         description: Статус заказа успешно обновлен
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Order'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
  *       401:
- *         description: Не авторизован
+ *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
- *         description: Нет прав доступа
+ *         $ref: '#/components/responses/ForbiddenError'
  *       404:
- *         description: Заказ не найден
+ *         $ref: '#/components/responses/NotFoundError'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 /**
@@ -215,7 +314,8 @@ const router = express.Router();
  * /api/orders/{id}:
  *   delete:
  *     tags: [Orders]
- *     summary: Удалить заказ (только для админа)
+ *     summary: Удалить заказ
+ *     description: Удаляет заказ (только для администраторов)
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -224,29 +324,45 @@ const router = express.Router();
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
+ *         description: ID заказа
  *     responses:
  *       200:
- *         description: Заказ удален
+ *         description: Заказ успешно удален
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Заказ успешно удален"
  *       401:
- *         description: Не авторизован
+ *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
- *         description: Нет прав доступа
+ *         $ref: '#/components/responses/ForbiddenError'
  *       404:
- *         description: Заказ не найден
+ *         $ref: '#/components/responses/NotFoundError'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
-// Get user's orders
+// Получить заказы пользователя
 router.get('/my-orders', auth, async (req, res) => {
   try {
     if (req.user.role === 'admin') {
-      return res.status(403).json({ message: 'Administrators should use /orders endpoint' });
+      return res.status(403).json({ message: 'Администраторы должны использовать эндпоинт /orders' });
     }
     const orders = await Order.find({ user: req.user._id })
       .populate('items.product')
       .sort({ createdAt: -1 });
     res.json(orders);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching orders' });
+    res.status(500).json({ message: 'Ошибка при получении заказов' });
   }
 });
 
@@ -434,29 +550,7 @@ router.patch('/:id/cancel', auth, async (req, res) => {
 });
 
 // Update order status (admin only)
-router.patch('/:id/status', auth, adminAuth, async (req, res) => {
-  try {
-    const { status } = req.body;
-    const order = await Order.findById(req.params.id);
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
-    // Validate status
-    if (!['unconfirmed', 'assembling', 'ready', 'assembled', 'issued', 'cancelled'].includes(status)) {
-      return res.status(400).json({
-        message: 'Invalid status. Must be one of: unconfirmed, assembling, ready, assembled, issued, cancelled'
-      });
-    }
-    order.status = status;
-    if (status === 'ready') {
-      order.readyAt = new Date();
-    }
-    await order.save();
-    res.json(order);
-  } catch (error) {
-    res.status(400).json({ message: 'Error updating order status' });
-  }
-});
+router.put('/:id/status', auth, adminAuth, updateOrderStatus);
 
 // ADMIN: Add new product
 router.post('/products', auth, adminAuth, async (req, res) => {

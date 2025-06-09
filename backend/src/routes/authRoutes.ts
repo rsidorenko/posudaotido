@@ -2,8 +2,9 @@ import express from 'express';
 import passport from 'passport';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
-import { register, login, logout, googleAuth, forgotPassword } from '../controllers/authController';
+import { register, login, logout, googleAuth, forgotPassword, getCurrentUser, googleCallback, refreshToken } from '../controllers/authController';
 import { validateRegistration, validateLogin } from '../middleware/validation';
+import { auth } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -13,6 +14,7 @@ const router = express.Router();
  *   post:
  *     tags: [Auth]
  *     summary: Регистрация нового пользователя
+ *     description: Создает нового пользователя в системе
  *     requestBody:
  *       required: true
  *       content:
@@ -27,18 +29,42 @@ const router = express.Router();
  *               email:
  *                 type: string
  *                 format: email
+ *                 example: "user@example.com"
  *               password:
  *                 type: string
+ *                 format: password
  *                 minLength: 6
+ *                 example: "password123"
  *               name:
  *                 type: string
+ *                 example: "Иван Иванов"
  *     responses:
  *       201:
  *         description: Пользователь успешно зарегистрирован
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
  *       400:
- *         description: Неверные данные
+ *         $ref: '#/components/responses/ValidationError'
  *       409:
- *         description: Email уже используется
+ *         description: Пользователь с таким email уже существует
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/register', validateRegistration, register);
 
@@ -48,6 +74,7 @@ router.post('/register', validateRegistration, register);
  *   post:
  *     tags: [Auth]
  *     summary: Вход в систему
+ *     description: Аутентификация пользователя и получение токена
  *     requestBody:
  *       required: true
  *       content:
@@ -61,8 +88,11 @@ router.post('/register', validateRegistration, register);
  *               email:
  *                 type: string
  *                 format: email
+ *                 example: "user@example.com"
  *               password:
  *                 type: string
+ *                 format: password
+ *                 example: "password123"
  *     responses:
  *       200:
  *         description: Успешный вход
@@ -73,19 +103,21 @@ router.post('/register', validateRegistration, register);
  *               properties:
  *                 token:
  *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *                 user:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                     email:
- *                       type: string
- *                     name:
- *                       type: string
- *                     role:
- *                       type: string
+ *                   $ref: '#/components/schemas/User'
  *       401:
  *         description: Неверные учетные данные
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/login', validateLogin, login);
 
@@ -95,15 +127,57 @@ router.post('/login', validateLogin, login);
  *   post:
  *     tags: [Auth]
  *     summary: Выход из системы
+ *     description: Выход пользователя из системы и инвалидация токена
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Успешный выход
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Успешный выход из системы"
  *       401:
- *         description: Не авторизован
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.post('/logout', logout);
+router.post('/logout', auth, logout);
+
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Получить текущего пользователя
+ *     description: Возвращает информацию о текущем авторизованном пользователе
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Информация о пользователе
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/me', auth, getCurrentUser);
 
 /**
  * @swagger
@@ -111,32 +185,72 @@ router.post('/logout', logout);
  *   get:
  *     tags: [Auth]
  *     summary: Аутентификация через Google
+ *     description: Перенаправляет на страницу аутентификации Google
  *     responses:
  *       302:
  *         description: Перенаправление на Google OAuth
  */
 router.get('/google', googleAuth);
 
-router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login` }),
+/**
+ * @swagger
+ * /api/auth/google/callback:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Callback для Google аутентификации
+ *     description: Обработка ответа от Google OAuth
+ *     responses:
+ *       200:
+ *         description: Успешная аутентификация через Google
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Ошибка аутентификации через Google
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/google/callback', 
+  passport.authenticate('google', { 
+    failureRedirect: `${process.env.FRONTEND_URL}/login` 
+  }), 
   async (req, res) => {
     try {
-      const user = req.user as any;
-      const token = jwt.sign(
-        { id: user._id },
-        process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '24h' }
-      );
+      const user = req.user;
+      if (!process.env.JWT_SECRET) {
+        throw new Error('JWT_SECRET is not configured');
+      }
+      
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { 
+        expiresIn: '24h' 
+      });
+
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 24 * 60 * 60 * 1000
       });
-      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/google-success`);
+
+      res.redirect(`${process.env.FRONTEND_URL}/auth/google-success`);
     } catch (error) {
       console.error('Google OAuth error:', error);
-      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=auth_failed`);
+      res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
     }
   }
 );
@@ -201,7 +315,8 @@ router.post('/reset-password', require('../controllers/authController').resetPas
  * /api/auth/refresh:
  *   post:
  *     tags: [Auth]
- *     summary: Обновить access token по refresh token
+ *     summary: Обновление токена
+ *     description: Обновляет JWT токен с помощью refresh token
  *     requestBody:
  *       required: true
  *       content:
@@ -213,15 +328,32 @@ router.post('/reset-password', require('../controllers/authController').resetPas
  *             properties:
  *               refreshToken:
  *                 type: string
+ *                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *     responses:
  *       200:
- *         description: Новые access и refresh токены
- *       400:
- *         description: Refresh token обязателен
+ *         description: Токен успешно обновлен
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *       401:
- *         description: Неверный refresh token
+ *         description: Недействительный refresh token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.post('/refresh', require('../controllers/authController').refresh);
+router.post('/refresh', refreshToken);
 
 /**
  * @swagger
