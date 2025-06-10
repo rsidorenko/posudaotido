@@ -26,7 +26,7 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
     const token = req.cookies.token;
     if (token) {
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret') as JwtPayload;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'swagozavr2swag1') as JwtPayload;
         const user = await User.findById(decoded.id);
         if (!user) {
           return res.status(401).json({ message: 'User not found.' });
@@ -42,7 +42,7 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
     return res.status(401).json({ message: 'Please authenticate.' });
   } catch (error) {
     console.error('Auth middleware error:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
+    return res.status(500).json({ message: 'педик' });
   }
 };
 
