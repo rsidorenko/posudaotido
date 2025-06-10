@@ -14,6 +14,8 @@ import {
 
 const router = express.Router();
 
+router.get('/me', auth, getCurrentUser);
+
 /**
  * @swagger
  * /users:
@@ -399,6 +401,6 @@ router.patch('/change-password', auth, async (req, res) => {
 });
 
 // Get current user
-router.get('/me', auth, getCurrentUser);
+
 
 export default router; 
