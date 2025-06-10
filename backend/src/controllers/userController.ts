@@ -104,4 +104,22 @@ export const deleteUser = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({ message: 'Ошибка при удалении пользователя' });
   }
+};
+
+// Получить текущего пользователя
+export const getCurrentUser = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Пользователь не авторизован' });
+    }
+    // req.user уже содержит объект пользователя (установлен в middleware)
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'Пользователь не найден' });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error('Ошибка в getCurrentUser:', error);
+    res.status(500).json({ message: 'Ошибка при получении текущего пользователя' });
+  }
 }; 
