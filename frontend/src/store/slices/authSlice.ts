@@ -131,7 +131,7 @@ export const verifyResetCodeThunk = createAsyncThunk(
   'auth/verifyResetCode',
   async ({ email, code }: { email: string; code: string }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/api/auth/verify-reset-code`, {
+      const response = await axios.post(`${API_URL}/auth/verify-reset-code`, {
         email,
         code
       });

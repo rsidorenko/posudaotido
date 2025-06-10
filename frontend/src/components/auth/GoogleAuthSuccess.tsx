@@ -16,7 +16,7 @@ export const GoogleAuthSuccess: React.FC = () => {
       return;
     }
 
-      axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/users/me`, {
+      axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/users/me`, {
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json'

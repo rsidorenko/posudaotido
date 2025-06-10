@@ -57,7 +57,7 @@ const ProductDetail: React.FC = () => {
     // TODO: Optionally set a local loading state here
 
     if (id) { // Only fetch if id is available
-      axios.get(`${API_URL}/api/products/${id}`)
+      axios.get(`${API_URL}/products/${id}`)
         .then(res => {
           setLocalProduct(res.data);
           // TODO: Optionally set local loading state to false
