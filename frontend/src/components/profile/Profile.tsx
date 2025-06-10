@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { updateProfile } from '../../store/slices/authSlice';
+import { updateProfile, getCurrentUser } from '../../store/slices/authSlice';
 import axios from '../../utils/axios';
 import styles from '../../styles/Profile.module.scss';
 
@@ -28,22 +28,12 @@ const Profile: React.FC = () => {
 
     if (!user) return;
 
-    const today = new Date().toISOString().split('T')[0];
-    if (user.nameChangeCount >= 2 && user.lastNameChange === today) {
-      setNameError('Вы можете менять имя только 2 раза в день');
-      return;
-    }
-
     try {
-      dispatch(updateProfile({
-        ...user,
-        name,
-        nameChangeCount: user.nameChangeCount + 1,
-        lastNameChange: today,
-      }));
+      const response = await axios.patch('/users/update-name', { name });
+      await dispatch(getCurrentUser());
       setSuccessMessage('Имя успешно обновлено');
-    } catch (error) {
-      setNameError('Ошибка при обновлении имени');
+    } catch (error: any) {
+      setNameError(error.response?.data?.message || 'Ошибка при обновлении имени');
     }
   };
 
