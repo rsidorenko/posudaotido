@@ -123,7 +123,7 @@ const Register: React.FC = () => {
             <span>или зарегистрироваться через</span>
           </div>
           <GoogleLoginButton onClick={() => {
-            window.location.href = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/auth/google`;
+            window.location.href = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/auth/google`;
           }} />
         </div>
       </form>
