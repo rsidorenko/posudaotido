@@ -550,7 +550,7 @@ router.patch('/:id/cancel', auth, async (req, res) => {
 });
 
 // Update order status (admin only)
-router.put('/:id/status', auth, adminAuth, updateOrderStatus);
+router.patch('/:id', auth, adminAuth, updateOrderStatus);
 
 // ADMIN: Add new product
 router.post('/products', auth, adminAuth, async (req, res) => {
