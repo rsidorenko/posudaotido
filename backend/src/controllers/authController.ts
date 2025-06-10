@@ -205,7 +205,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     }
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка при получении информации о пользователе' });
+    res.status(500).json({ message: 'педик' });
   }
 };
 
