@@ -51,9 +51,9 @@ app.use(passport.session());
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-if (process.env.NODE_ENV === 'production') {
-  app.use(csrf({}));
-}
+// if (process.env.NODE_ENV === 'production') {
+//   app.use(csrf({}));
+// }
 
 const metricsMiddleware = promBundle({
   includeMethod: true,
