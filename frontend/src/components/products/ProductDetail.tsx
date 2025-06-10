@@ -9,7 +9,7 @@ import { Product, fetchProducts } from '../../store/slices/productSlice';
 import { CartItem } from '../../store/slices/cartSlice';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000'; // TODO: вынести в .env для продакшена
+const API_URL = process.env.REACT_APP_API_URL; // TODO: вынести в .env для продакшена
 
 function getImageUrl(img: string) {
   if (!img) return '/no-image.png';
