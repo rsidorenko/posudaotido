@@ -59,7 +59,7 @@ export const cancelOrder = createAsyncThunk<any, string>(
 export const updateOrderStatus = createAsyncThunk<any, { orderId: string; status: string }>(
   'orders/updateOrderStatus',
   async ({ orderId, status }) => {
-    const res = await api.patch(`/orders/${orderId}/status`, { status });
+    const res = await api.patch(`/orders/${orderId}`, { status });
     return res.data;
   }
 );
