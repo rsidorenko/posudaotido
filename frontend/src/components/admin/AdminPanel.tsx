@@ -320,7 +320,7 @@ const AdminPanel: React.FC = () => {
   // Кнопка смены статуса заказа
   const handleStatusChange = async (orderId: string, newStatus: OrderStatusKey) => {
     try {
-      await api.patch(`/orders/${orderId}/status`, { status: newStatus });
+      await api.patch(`/orders/${orderId}`, { status: newStatus });
       fetchAllOrders();
     } catch {}
   };
