@@ -10,7 +10,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/auth/register:
+ * /auth/register:
  *   post:
  *     tags: [Auth]
  *     summary: Регистрация нового пользователя
@@ -70,7 +70,7 @@ router.post('/register', validateRegistration, register);
 
 /**
  * @swagger
- * /api/auth/login:
+ * /auth/login:
  *   post:
  *     tags: [Auth]
  *     summary: Вход в систему
@@ -123,7 +123,7 @@ router.post('/login', validateLogin, login);
 
 /**
  * @swagger
- * /api/auth/logout:
+ * /auth/logout:
  *   post:
  *     tags: [Auth]
  *     summary: Выход из системы
@@ -154,7 +154,7 @@ router.post('/logout', auth, logout);
 
 /**
  * @swagger
- * /api/auth/me:
+ * /auth/me:
  *   get:
  *     tags: [Auth]
  *     summary: Получить текущего пользователя
@@ -181,7 +181,7 @@ router.get('/me', auth, getCurrentUser);
 
 /**
  * @swagger
- * /api/auth/google:
+ * /auth/google:
  *   get:
  *     tags: [Auth]
  *     summary: Аутентификация через Google
@@ -194,7 +194,7 @@ router.get('/google', googleAuth);
 
 /**
  * @swagger
- * /api/auth/google/callback:
+ * /auth/google/callback:
  *   get:
  *     tags: [Auth]
  *     summary: Callback для Google аутентификации
@@ -257,7 +257,7 @@ router.get('/google/callback',
 
 /**
  * @swagger
- * /api/auth/forgot-password:
+ * /auth/forgot-password:
  *   post:
  *     tags: [Auth]
  *     summary: Запрос на сброс пароля (отправка кода на email)
@@ -283,7 +283,7 @@ router.post('/forgot-password', forgotPassword);
 
 /**
  * @swagger
- * /api/auth/reset-password:
+ * /auth/reset-password:
  *   post:
  *     tags: [Auth]
  *     summary: Сброс пароля с использованием токена
@@ -312,7 +312,7 @@ router.post('/reset-password', require('../controllers/authController').resetPas
 
 /**
  * @swagger
- * /api/auth/refresh:
+ * /auth/refresh:
  *   post:
  *     tags: [Auth]
  *     summary: Обновление токена
@@ -357,7 +357,7 @@ router.post('/refresh', refreshToken);
 
 /**
  * @swagger
- * /api/auth/verify-reset-code:
+ * /auth/verify-reset-code:
  *   post:
  *     tags: [Auth]
  *     summary: Проверка кода восстановления пароля

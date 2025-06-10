@@ -65,10 +65,10 @@ const metricsMiddleware = promBundle({
 app.use('/metrics', metricsMiddleware as unknown as express.RequestHandler);
 
 // Routes
-app.use('/api/products', productRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/auth', authRoutes);
+app.use('/products', productRoutes);
+app.use('/users', userRoutes);
+app.use('/orders', orderRoutes);
+app.use('/auth', authRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

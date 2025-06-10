@@ -23,7 +23,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/orders:
+ * /orders:
  *   get:
  *     summary: Получить список заказов пользователя
  *     tags: [Orders]
@@ -108,7 +108,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/orders/{id}/cancel:
+ * /orders/{id}/cancel:
  *   patch:
  *     summary: Отменить заказ
  *     tags: [Orders]
@@ -132,7 +132,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/orders/{id}:
+ * /orders/{id}:
  *   get:
  *     tags: [Orders]
  *     summary: Получить заказ по ID
@@ -170,7 +170,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/orders/user/me:
+ * /orders/user/me:
  *   get:
  *     tags: [Orders]
  *     summary: Получить заказы текущего пользователя
@@ -210,7 +210,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/orders:
+ * /orders:
  *   get:
  *     tags: [Orders]
  *     summary: Получить все заказы
@@ -258,7 +258,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/orders/{id}/status:
+ * /orders/{id}/status:
  *   put:
  *     tags: [Orders]
  *     summary: Обновить статус заказа
@@ -311,7 +311,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/orders/{id}:
+ * /orders/{id}:
  *   delete:
  *     tags: [Orders]
  *     summary: Удалить заказ

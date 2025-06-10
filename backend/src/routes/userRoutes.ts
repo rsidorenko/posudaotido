@@ -15,7 +15,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/users:
+ * /users:
  *   get:
  *     tags: [Users]
  *     summary: Получить список всех пользователей
@@ -58,7 +58,7 @@ router.get('/', auth, adminAuth, getAllUsers);
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /users/{id}:
  *   get:
  *     tags: [Users]
  *     summary: Получить пользователя по ID
@@ -97,7 +97,7 @@ router.get('/:id', auth, adminAuth, getUserById);
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /users/{id}:
  *   put:
  *     tags: [Users]
  *     summary: Обновить информацию о пользователе
@@ -152,7 +152,7 @@ router.put('/:id', auth, updateUser);
 
 /**
  * @swagger
- * /api/users/{id}/role:
+ * /users/{id}/role:
  *   put:
  *     tags: [Users]
  *     summary: Обновить роль пользователя
@@ -206,7 +206,7 @@ router.put('/:id/role', auth, adminAuth, updateUserRole);
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /users/{id}:
  *   delete:
  *     tags: [Users]
  *     summary: Удалить пользователя
@@ -254,7 +254,11 @@ router.post('/register', async (req, res) => {
     const user = new User({ name, email, password });
     await user.save();
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not defined');
+    }
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET as string, {
       expiresIn: '7d'
     });
 
@@ -289,7 +293,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not defined');
+    }
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET as string, {
       expiresIn: '7d'
     });
 

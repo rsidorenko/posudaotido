@@ -6,7 +6,7 @@ import path from 'path';
 import type { NextFunction } from 'express';
 import type { FileFilterCallback } from 'multer';
 import fs from 'fs';
-import { imageSize } from 'image-size';
+import imageSize from 'image-size';
 import { 
   getAllProducts, 
   getProductById, 
@@ -21,7 +21,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/products:
+ * products:
  *   get:
  *     tags: [Products]
  *     summary: Получить список всех продуктов
@@ -78,7 +78,7 @@ router.get('/', getAllProducts);
 
 /**
  * @swagger
- * /api/products/search:
+ * products/search:
  *   get:
  *     tags: [Products]
  *     summary: Поиск продуктов
@@ -118,7 +118,7 @@ router.get('/search', searchProducts);
 
 /**
  * @swagger
- * /api/products/category/{categoryId}:
+ * products/category/{categoryId}:
  *   get:
  *     tags: [Products]
  *     summary: Получить продукты по категории
@@ -163,7 +163,7 @@ router.get('/category/:categoryId', getProductsByCategory);
 
 /**
  * @swagger
- * /api/products/categories:
+ * products/categories:
  *   get:
  *     tags: [Products]
  *     summary: Получить список всех категорий
@@ -198,7 +198,7 @@ router.get('/categories', async (req, res) => {
 
 /**
  * @swagger
- * /api/products/{id}:
+ * products/{id}:
  *   get:
  *     tags: [Products]
  *     summary: Получить продукт по ID
@@ -234,18 +234,19 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+const storage = multer.diskStorage({
+  destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, path.join(__dirname, '../../uploads'));
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, uniqueSuffix + '-' + file.originalname);
-    }
-  }),
+  storage,
   limits: { files: 4 },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Только изображения!'));
   }
@@ -253,7 +254,7 @@ const upload = multer({
 
 /**
  * @swagger
- * /api/products:
+ * products:
  *   post:
  *     tags: [Products]
  *     summary: Создать новый продукт
@@ -315,7 +316,7 @@ router.post('/', auth, adminAuth, upload.single('image'), createProduct);
 
 /**
  * @swagger
- * /api/products/{id}:
+ * products/{id}:
  *   put:
  *     tags: [Products]
  *     summary: Обновить продукт
@@ -377,7 +378,7 @@ router.put('/:id', auth, adminAuth, upload.single('image'), updateProduct);
 
 /**
  * @swagger
- * /api/products/{id}:
+ * products/{id}:
  *   delete:
  *     tags: [Products]
  *     summary: Удалить продукт
